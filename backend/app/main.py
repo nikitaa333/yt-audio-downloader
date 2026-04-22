@@ -4,7 +4,6 @@ import logging
 import os
 import re
 import shutil
-import shutil as _shutil
 import tempfile
 import uuid
 from pathlib import Path
@@ -24,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 
 def _ensure_ffmpeg() -> str | None:
     """Return path to an ffmpeg binary, installing a static build if needed."""
-    if _shutil.which("ffmpeg"):
+    if shutil.which("ffmpeg"):
         return None  # already on PATH
     try:
         import static_ffmpeg  # type: ignore
@@ -33,7 +32,7 @@ def _ensure_ffmpeg() -> str | None:
     except Exception:  # noqa: BLE001
         logger.exception("failed to set up static ffmpeg")
         return None
-    return _shutil.which("ffmpeg")
+    return shutil.which("ffmpeg")
 
 
 FFMPEG_PATH = _ensure_ffmpeg()
