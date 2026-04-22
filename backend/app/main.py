@@ -70,7 +70,30 @@ ALLOWED_ORIGINS = os.getenv(
 ).split(",")
 
 YT_COOKIES_FILE = os.getenv("YT_COOKIES_FILE") or None
+YT_COOKIES_CONTENT = os.getenv("YT_COOKIES_CONTENT") or None
 YT_PROXY = os.getenv("YT_PROXY") or None
+
+
+def _materialize_cookies() -> str | None:
+    """Return a path to a Netscape cookies.txt if configured.
+
+    Priority: YT_COOKIES_FILE (existing path) > YT_COOKIES_CONTENT (inlined string).
+    """
+    if YT_COOKIES_FILE and Path(YT_COOKIES_FILE).exists():
+        return YT_COOKIES_FILE
+    if YT_COOKIES_CONTENT:
+        dest = Path("/tmp/yt_cookies.txt")
+        try:
+            dest.write_text(YT_COOKIES_CONTENT)
+            return str(dest)
+        except OSError:
+            logger.exception("could not write cookies file")
+    return None
+
+
+COOKIES_PATH = _materialize_cookies()
+if COOKIES_PATH:
+    logger.info("using YouTube cookies from %s", COOKIES_PATH)
 YT_USER_AGENT = os.getenv(
     "YT_USER_AGENT",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -92,8 +115,8 @@ def _common_ydl_opts() -> dict:
     }
     if FFMPEG_PATH:
         opts["ffmpeg_location"] = FFMPEG_PATH
-    if YT_COOKIES_FILE and Path(YT_COOKIES_FILE).exists():
-        opts["cookiefile"] = YT_COOKIES_FILE
+    if COOKIES_PATH:
+        opts["cookiefile"] = COOKIES_PATH
     if YT_PROXY:
         opts["proxy"] = YT_PROXY
     return opts
