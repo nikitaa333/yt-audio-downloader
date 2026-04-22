@@ -74,10 +74,17 @@ YT_COOKIES_CONTENT = os.getenv("YT_COOKIES_CONTENT") or None
 YT_PROXY = os.getenv("YT_PROXY") or None
 
 
+_DEFAULT_COOKIES_PATHS = [
+    Path("/app/cookies.txt"),
+    Path(__file__).resolve().parent.parent / "cookies.txt",
+]
+
+
 def _materialize_cookies() -> str | None:
     """Return a path to a Netscape cookies.txt if configured.
 
-    Priority: YT_COOKIES_FILE (existing path) > YT_COOKIES_CONTENT (inlined string).
+    Priority: YT_COOKIES_FILE (existing path) > YT_COOKIES_CONTENT (inlined string) >
+    well-known default paths (bundled with the image).
     """
     if YT_COOKIES_FILE and Path(YT_COOKIES_FILE).exists():
         return YT_COOKIES_FILE
@@ -88,6 +95,9 @@ def _materialize_cookies() -> str | None:
             return str(dest)
         except OSError:
             logger.exception("could not write cookies file")
+    for p in _DEFAULT_COOKIES_PATHS:
+        if p.exists():
+            return str(p)
     return None
 
 
