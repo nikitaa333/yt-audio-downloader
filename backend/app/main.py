@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import shutil
+import shutil as _shutil
 import tempfile
 import uuid
 from pathlib import Path
@@ -13,12 +14,31 @@ from urllib.parse import quote
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
 logger = logging.getLogger("yt_audio")
 logging.basicConfig(level=logging.INFO)
+
+
+def _ensure_ffmpeg() -> str | None:
+    """Return path to an ffmpeg binary, installing a static build if needed."""
+    if _shutil.which("ffmpeg"):
+        return None  # already on PATH
+    try:
+        import static_ffmpeg  # type: ignore
+
+        static_ffmpeg.add_paths()  # downloads on first run, cached afterwards
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to set up static ffmpeg")
+        return None
+    return _shutil.which("ffmpeg")
+
+
+FFMPEG_PATH = _ensure_ffmpeg()
+if FFMPEG_PATH:
+    logger.info("using ffmpeg at %s", FFMPEG_PATH)
 
 AudioFormat = Literal["mp3", "m4a", "opus", "wav", "flac", "aac", "vorbis"]
 ALLOWED_FORMATS: set[str] = {"mp3", "m4a", "opus", "wav", "flac", "aac", "vorbis"}
@@ -71,6 +91,8 @@ def _common_ydl_opts() -> dict:
             "youtube": {"player_client": ["ios", "web_safari", "web"]}
         },
     }
+    if FFMPEG_PATH:
+        opts["ffmpeg_location"] = FFMPEG_PATH
     if YT_COOKIES_FILE and Path(YT_COOKIES_FILE).exists():
         opts["cookiefile"] = YT_COOKIES_FILE
     if YT_PROXY:
