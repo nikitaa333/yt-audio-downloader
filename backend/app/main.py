@@ -13,12 +13,31 @@ from urllib.parse import quote
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError
 
 logger = logging.getLogger("yt_audio")
 logging.basicConfig(level=logging.INFO)
+
+
+def _ensure_ffmpeg() -> str | None:
+    """Return path to an ffmpeg binary, installing a static build if needed."""
+    if shutil.which("ffmpeg"):
+        return None  # already on PATH
+    try:
+        import static_ffmpeg  # type: ignore
+
+        static_ffmpeg.add_paths()  # downloads on first run, cached afterwards
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to set up static ffmpeg")
+        return None
+    return shutil.which("ffmpeg")
+
+
+FFMPEG_PATH = _ensure_ffmpeg()
+if FFMPEG_PATH:
+    logger.info("using ffmpeg at %s", FFMPEG_PATH)
 
 AudioFormat = Literal["mp3", "m4a", "opus", "wav", "flac", "aac", "vorbis"]
 ALLOWED_FORMATS: set[str] = {"mp3", "m4a", "opus", "wav", "flac", "aac", "vorbis"}
@@ -51,7 +70,40 @@ ALLOWED_ORIGINS = os.getenv(
 ).split(",")
 
 YT_COOKIES_FILE = os.getenv("YT_COOKIES_FILE") or None
+YT_COOKIES_CONTENT = os.getenv("YT_COOKIES_CONTENT") or None
 YT_PROXY = os.getenv("YT_PROXY") or None
+
+
+_DEFAULT_COOKIES_PATHS = [
+    Path("/app/cookies.txt"),
+    Path(__file__).resolve().parent.parent / "cookies.txt",
+]
+
+
+def _materialize_cookies() -> str | None:
+    """Return a path to a Netscape cookies.txt if configured.
+
+    Priority: YT_COOKIES_FILE (existing path) > YT_COOKIES_CONTENT (inlined string) >
+    well-known default paths (bundled with the image).
+    """
+    if YT_COOKIES_FILE and Path(YT_COOKIES_FILE).exists():
+        return YT_COOKIES_FILE
+    if YT_COOKIES_CONTENT:
+        dest = Path("/tmp/yt_cookies.txt")
+        try:
+            dest.write_text(YT_COOKIES_CONTENT)
+            return str(dest)
+        except OSError:
+            logger.exception("could not write cookies file")
+    for p in _DEFAULT_COOKIES_PATHS:
+        if p.exists():
+            return str(p)
+    return None
+
+
+COOKIES_PATH = _materialize_cookies()
+if COOKIES_PATH:
+    logger.info("using YouTube cookies from %s", COOKIES_PATH)
 YT_USER_AGENT = os.getenv(
     "YT_USER_AGENT",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -71,8 +123,10 @@ def _common_ydl_opts() -> dict:
             "youtube": {"player_client": ["ios", "web_safari", "web"]}
         },
     }
-    if YT_COOKIES_FILE and Path(YT_COOKIES_FILE).exists():
-        opts["cookiefile"] = YT_COOKIES_FILE
+    if FFMPEG_PATH:
+        opts["ffmpeg_location"] = FFMPEG_PATH
+    if COOKIES_PATH:
+        opts["cookiefile"] = COOKIES_PATH
     if YT_PROXY:
         opts["proxy"] = YT_PROXY
     return opts

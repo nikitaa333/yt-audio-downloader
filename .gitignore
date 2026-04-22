@@ -1,3 +1,5 @@
+cookies.txt
+backend/cookies.txt
 __pycache__/
 *.py[cod]
 *.egg-info/
