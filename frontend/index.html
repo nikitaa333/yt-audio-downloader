@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YT → Audio · Скачать MP3 с YouTube</title>
+    <meta
+      name="description"
+      content="Вставь ссылку на YouTube — получи MP3, M4A, Opus, WAV, FLAC или OGG."
+    />
+    <link rel="icon" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' font-size='52'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="logo" aria-hidden="true">🎵</div>
+        <h1>YT → Audio</h1>
+        <p class="tag">Вставь ссылку с YouTube и скачай звук в нужном формате.</p>
+      </header>
+
+      <section class="card" aria-label="Форма загрузки">
+        <form id="form" autocomplete="off">
+          <label class="field">
+            <span class="field-label">Ссылка на YouTube</span>
+            <input
+              id="url"
+              name="url"
+              type="url"
+              inputmode="url"
+              placeholder="https://www.youtube.com/watch?v=..."
+              required
+              spellcheck="false"
+            />
+          </label>
+
+          <label class="field">
+            <span class="field-label">Формат</span>
+            <select id="fmt" name="fmt">
+              <option value="mp3" selected>MP3 (192 kbps)</option>
+              <option value="m4a">M4A (AAC, оригинальное качество)</option>
+              <option value="opus">Opus (оригинальное качество)</option>
+              <option value="aac">AAC</option>
+              <option value="vorbis">OGG Vorbis</option>
+              <option value="wav">WAV (без потерь, большой)</option>
+              <option value="flac">FLAC (без потерь)</option>
+            </select>
+          </label>
+
+          <div class="actions">
+            <button type="button" id="preview-btn" class="btn btn-ghost">
+              Предпросмотр
+            </button>
+            <button type="submit" id="download-btn" class="btn btn-primary">
+              Скачать
+            </button>
+          </div>
+        </form>
+
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+
+        <article id="preview" class="preview hidden" aria-live="polite">
+          <img id="preview-thumb" alt="" />
+          <div class="preview-meta">
+            <h2 id="preview-title"></h2>
+            <p id="preview-uploader"></p>
+            <p id="preview-duration"></p>
+          </div>
+        </article>
+      </section>
+
+      <footer class="foot">
+        <p>
+          Скачивай только контент, на который у тебя есть права. Сервис использует
+          <a href="https://github.com/yt-dlp/yt-dlp" target="_blank" rel="noopener">yt-dlp</a>
+          и <a href="https://ffmpeg.org/" target="_blank" rel="noopener">ffmpeg</a>.
+        </p>
+      </footer>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>
