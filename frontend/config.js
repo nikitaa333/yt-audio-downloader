@@ -1,2 +1,2 @@
-// Injected at build/deploy time. Overrides the placeholder in app.js.
-window.__API_BASE__ = "";
+// Deployed API base URL. Override locally by editing this file.
+window.__API_BASE__ = "https://yt-audio-backend-iycpbkyr.fly.dev";
